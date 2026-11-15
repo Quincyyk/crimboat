@@ -1,0 +1,17 @@
+name: test
+version: 'test 13'
+main: com.aquaticsmp.test.TestPlugin
+api-version: '1.21'
+description: test
+author: Marlon
+commands:
+  crimboat:
+    description: Ship commands (give engine, check, reload)
+    usage: /crimboat <give|check|reload>
+permissions:
+  test.admin:
+    description: Use /crimboat give and /crimboat reload
+    default: op
+  test.use:
+    description: Use /crimboat check
+    default: true
