@@ -53,7 +53,11 @@ public final class ShipListener implements Listener {
         // Right-click a cannon = man it.
         if (Cannons.isCannonBlock(b)) {
             e.setCancelled(true);
-            if (!p.isSneaking() && !p.isInsideVehicle()) plugin.cannons().man(p, b);
+            if (!p.isSneaking() && !p.isInsideVehicle()) {
+                com.aquaticsmp.test.api.CannonManEvent man = new com.aquaticsmp.test.api.CannonManEvent(p, b);
+                Bukkit.getPluginManager().callEvent(man);
+                if (!man.isCancelled()) plugin.cannons().man(p, b);
+            }
             return;
         }
 

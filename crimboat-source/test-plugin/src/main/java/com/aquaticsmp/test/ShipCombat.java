@@ -71,7 +71,7 @@ public final class ShipCombat {
         hp = Math.max(0, hp - damage);
         String key = "block:" + engine.getWorld().getName() + ":" + engine.getX() + "," + engine.getY() + "," + engine.getZ();
         hitEffects(at);
-        showBar(key, hp, max, at);
+        showBar(key, null, hp, max, at);
         if (hp <= 0) {
             ShipManager.Ship session = plugin.ships().shipAt(w, Pos.of(b));
             if (session != null) plugin.ships().endWithoutAnchor(session);
@@ -91,11 +91,12 @@ public final class ShipCombat {
         if (s.hp < 0 || s.hp > max) s.hp = max;
         s.hp = Math.max(0, s.hp - damage);
         hitEffects(at);
-        showBar("ship:" + s.driver, s.hp, max, at);
+        showBar("ship:" + s.driver, null, s.hp, max, at);
         if (s.hp <= 0) plugin.ships().sinkSession(s, at);
     }
 
-    private void hitEffects(Location at) {
+    /** Wood splinters, smoke and a crack where a hull was hit. */
+    public void hitEffects(Location at) {
         World w = at.getWorld();
         w.spawnParticle(Particle.BLOCK, at, 30, 0.6, 0.6, 0.6, 0.1, Material.OAK_PLANKS.createBlockData());
         w.spawnParticle(Particle.LARGE_SMOKE, at, 10, 0.4, 0.4, 0.4, 0.03);
@@ -103,10 +104,16 @@ public final class ShipCombat {
         w.playSound(at, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 1.2f, 0.8f);
     }
 
-    private void showBar(String key, int hp, int max, Location at) {
+    /**
+     * Shows the hull health bar to everyone near the hit for a few seconds. key: one bar per ship.
+     * label: what is shown before the numbers (null = "Ship Hull").
+     */
+    public void showBar(String key, Component label, int hp, int max, Location at) {
         float progress = max <= 0 ? 0f : Math.max(0f, Math.min(1f, hp / (float) max));
         BossBar.Color color = progress > 0.6f ? BossBar.Color.GREEN : progress > 0.3f ? BossBar.Color.YELLOW : BossBar.Color.RED;
-        Component title = Component.text("⚓ Ship Hull  ", NamedTextColor.WHITE)
+        Component title = Component.text("⚓ ", NamedTextColor.WHITE)
+                .append(label == null ? Component.text("Ship Hull", NamedTextColor.WHITE) : label)
+                .append(Component.text("  "))
                 .append(Component.text(hp + " / " + max, progress > 0.3f ? NamedTextColor.YELLOW : NamedTextColor.RED))
                 .append(hp <= 0 ? Component.text("  SINKING!", NamedTextColor.DARK_RED) : Component.empty());
         BossBar bar = bars.computeIfAbsent(key, k -> BossBar.bossBar(title, progress, color, BossBar.Overlay.NOTCHED_10));

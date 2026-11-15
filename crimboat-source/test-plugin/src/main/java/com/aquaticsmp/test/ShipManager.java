@@ -256,6 +256,20 @@ public final class ShipManager {
             p.sendMessage(Component.text(r.describe(maxSize()), NamedTextColor.RED));
             return;
         }
+        // other plugins may keep people off ships that aren't theirs (crews, claims...)
+        Set<Block> shipBlocks = new java.util.HashSet<>();
+        Block engine = null;
+        for (Pos pos : r.blocks) {
+            Block b = pos.block(stair.getWorld());
+            shipBlocks.add(b);
+            if (Engine.blockTier(b) == r.tier && engine == null) engine = b;
+        }
+        com.aquaticsmp.test.api.ShipSailEvent sail = new com.aquaticsmp.test.api.ShipSailEvent(p, stair, engine, shipBlocks);
+        Bukkit.getPluginManager().callEvent(sail);
+        if (sail.isCancelled()) {
+            if (sail.getDenyMessage() != null) p.sendMessage(Component.text(sail.getDenyMessage(), NamedTextColor.RED));
+            return;
+        }
         Ship ship = new Ship(stair.getWorld(), r.blocks, r.waterTop, Pos.of(stair), p.getUniqueId(), seat.getUniqueId());
         ship.tier = Math.max(1, r.tier);
         ships.add(ship);
