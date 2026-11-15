@@ -1,0 +1,103 @@
+# test - ship plugin config
+
+# Max ship size depends on the engine tier (see engines: below): Tier 1 = 500 ... Tier 5 = 2000 blocks.
+# Ships this big or bigger count as "huge" for speed, steering and health.
+big-ship-size: 1000
+
+# Ships can only be built from wood (planks, logs, slabs, stairs, fences, doors, trapdoors, signs...),
+# wool and carpets (sails and flags), and decorations: barrels, chests, banners, lanterns, torches,
+# ladders, chains, bells, beds, candles, flower pots, glass panes, iron bars and similar.
+# NO stone, metal blocks, dirt etc. Add extra allowed blocks here, e.g. [ "COPPER_BLOCK" ]
+ship-extra-blocks: []
+
+# ---- Speed (blocks per tick, 20 ticks = 1 second). Vanilla boats do about 0.4 (8 blocks/sec).
+# Speed depends on the ENGINE TIER and the SHIP SIZE.
+# Ships this size or smaller get the "small ship" speed, the biggest ships (big-ship-size)
+# get the "big ship" speed, everything in between is blended.
+# Ships are never slower than 0.45 (9 blocks/sec), so always faster than a vanilla boat.
+small-ship-size: 30
+engines:
+  tier-1:   # Copper Engine
+    max-ship-size: 500
+    speed-small-ship: 0.6    # 12 blocks/sec
+    speed-big-ship: 0.45     #  9 blocks/sec
+  tier-2:   # Iron Engine
+    max-ship-size: 875
+    speed-small-ship: 0.7    # 14
+    speed-big-ship: 0.5      # 10
+  tier-3:   # Gold Engine
+    max-ship-size: 1250
+    speed-small-ship: 0.8    # 16
+    speed-big-ship: 0.56     # 11
+  tier-4:   # Blaze Engine
+    max-ship-size: 1625
+    speed-small-ship: 0.9    # 18
+    speed-big-ship: 0.63     # 13
+  tier-5:   # Diamond Engine - fast no matter what
+    max-ship-size: 2000
+    speed-small-ship: 1.0    # 20
+    speed-big-ship: 0.85     # 17
+
+acceleration-small-ship: 0.03
+acceleration-big-ship: 0.012
+drag: 0.015
+
+# ---- Steering (degrees per tick)
+turn-speed-small-ship: 4.0
+turn-speed-big-ship: 1.5
+turn-acceleration-small-ship: 0.35
+turn-acceleration-big-ship: 0.12
+# Turning visuals update every N ticks (1 = smoothest).
+turn-render-ticks: 1
+
+# How much a ship bounces back when it bumps into land, blocks or another ship (0 = just stop).
+bump-bounce: 0.3
+
+# When the ship sits still this long (ticks), it anchors and turns back into blocks.
+anchor-after-idle-ticks: 40
+# Before anchoring, the ship gently straightens up (degrees per tick) instead of snapping.
+anchor-straighten-speed: 1.5
+
+# How many ticks each movement is blended over on screen (1-5). 3 = extra smooth.
+smoothing-ticks: 3
+
+# ---- Solid ship while sailing (invisible boxes so you can walk on it and bump into it)
+max-deck-colliders: 600
+# Move the invisible boxes up/down if you float above or sink into the deck.
+collider-y-offset: 0.0
+
+# Fine-tune how high players sit on stairs/slabs. Raise or lower if it looks off.
+seat-height-offset: 0.0
+
+# Everyone on board must be sitting (stair or slab) for the ship to move.
+# If someone stands up while sailing, the ship stops and anchors.
+crew-must-sit-to-sail: true
+
+# ---- Cannons (place on your ship, right-click to man, aim with the mouse, click to fire)
+cannons:
+  ball-speed: 2.4          # blocks per tick when fired
+  gravity: 0.045           # how fast the ball drops (higher = shorter range)
+  drag: 0.995
+  reload-ticks: 50         # 2.5 seconds between shots
+  min-pitch: -40           # how far up you can aim
+  max-pitch: 20            # how far down you can aim
+  ship-damage: 1           # hull damage per hit
+  player-damage: 8.0       # damage to players/mobs in the blast
+  explosion-radius: 3.0
+  ball-size: 0.7
+  # Use a textured cannon from a resource pack instead of the block-built barrel,
+  # e.g. "aquatic:hand_cannon" from the AquaticSMP pack. Leave empty for the block barrel.
+  barrel-item-model: ""
+  barrel-item-scale: 2.2
+
+# ---- Ship health
+combat:
+  health-small-ship: 5     # hits to sink a small ship
+  health-big-ship: 20      # hits to sink the biggest ship
+  extra-health-per-engine-tier: 2
+  health-bar-range: 48
+  sink-step-ticks: 8       # how fast it sinks (ticks per block down)
+
+# ---- Looks
+# How much ships bob up and down on the waves while sailing (blocks). 0 = off.
+bob-amount: 0.06
