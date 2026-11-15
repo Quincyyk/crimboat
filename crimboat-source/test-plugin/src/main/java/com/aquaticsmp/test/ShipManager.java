@@ -61,7 +61,7 @@ public final class ShipManager {
     /** A block taken from the ship, stored relative to the captain's chair. */
     record Captured(int ox, int oy, int oz, BlockData data, ItemStack[] contents,
                     Component[] front, Component[] back, int engine, boolean tile,
-                    boolean cannon, int hp) {}
+                    boolean cannon, int hp, UUID owner) {}
 
     /** One moving piece of the ship while sailing. */
     static final class Part {
@@ -440,7 +440,8 @@ public final class ShipManager {
             boolean cannon = Cannons.isCannonBlock(b);
             int hp = engine > 0 ? Engine.getHp(b) : -1;
             caps.add(new Captured(p.x() - piv.x(), p.y() - piv.y(), p.z() - piv.z(), b.getBlockData(),
-                    contents, front, back, engine, bs instanceof TileState, cannon, hp));
+                    contents, front, back, engine, bs instanceof TileState, cannon, hp,
+                    engine > 0 ? Engine.getOwner(b) : null));
         }
 
         // seats that ride along
@@ -1106,6 +1107,7 @@ public final class ShipManager {
                 }
                 Engine.setEngineTag(st, c.engine());
                 Engine.setHp(st, c.engine() > 0 ? s.hp : -1);
+                Engine.setOwner(st, c.engine() > 0 ? c.owner() : null);
                 Cannons.setCannonTag(st, c.cannon());
                 st.update(true, false);
             }

@@ -75,7 +75,8 @@ public final class CrimboatApi {
     // ------------------------------------------------------------------ ships
 
     /** A ship found from one of its blocks. */
-    public record ShipInfo(boolean ready, boolean hasEngine, int tier, Block engine, Set<Block> blocks, String status) {}
+    public record ShipInfo(boolean ready, boolean hasEngine, int tier, Block engine, java.util.UUID owner,
+                           Set<Block> blocks, String status) {}
 
     /** Finds the ship this block belongs to (every connected ship block). */
     public ShipInfo scanShip(Block block) {
@@ -87,7 +88,8 @@ public final class CrimboatApi {
             blocks.add(b);
             if (engine == null && r.hasEngine && Engine.blockTier(b) == r.tier) engine = b;
         }
-        return new ShipInfo(r.status == ShipScanner.Status.OK, r.hasEngine, r.tier, engine, blocks, r.status.name());
+        return new ShipInfo(r.status == ShipScanner.Status.OK, r.hasEngine, r.tier, engine,
+                engine == null ? null : Engine.getOwner(engine), blocks, r.status.name());
     }
 
     /** True while this block is part of a ship that someone is sailing or steering right now. */
@@ -98,6 +100,11 @@ public final class CrimboatApi {
     /** Engine tier of a placed block (0 = not an engine). */
     public int engineTier(Block block) {
         return Engine.blockTier(block);
+    }
+
+    /** Who placed this engine (it moves with the ship), or null for engines from before owners were saved. */
+    public java.util.UUID engineOwner(Block engine) {
+        return Engine.getOwner(engine);
     }
 
     /** Engine tier of an item (0 = not an engine item). */

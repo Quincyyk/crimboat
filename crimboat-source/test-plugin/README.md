@@ -31,7 +31,8 @@ Add `softdepend: [test]` to your plugin.yml and build against this plugin (provi
 
 - `CrimboatApi.get()` (null while crimboat is off):
   - hull health: `hullHealth(blocks, tier)`, `showHullBar(...)`, `hullHitEffects(at)`, `sinkWreck(...)`
-  - ships: `scanShip(block)`, `isCaptained(block)`, `engineTier(block or item)`, `isCrimboatEntity(entity)`
+  - ships: `scanShip(block)` (blocks, engine, tier and owner), `isCaptained(block)`, `engineTier(block or item)`, `engineOwner(engine)`, `isCrimboatEntity(entity)`
+- Engines remember who placed them (kept while the ship sails), so other plugins can tell whose ship it is.
   - cannons: `placeCannon(block, yaw)`, `removeCannon(block)`, `aimAt(cannon, target)`, `fireCannon(cannon, direction, shooter, ownBlocks)` (no gunner, no ammo: for mob crews and forts), `reloadTicks()`
 - Events:
   - `ShipCannonHitEvent`: a cannonball hit a block. Cancel it to handle the damage yourself (your own ships or forts); `setDamage` changes the hull damage.

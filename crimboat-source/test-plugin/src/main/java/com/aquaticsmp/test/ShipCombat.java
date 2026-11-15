@@ -172,6 +172,7 @@ public final class ShipCombat {
             if (Engine.isEngineBlock(b)) {
                 Engine.setEngineTag(st, 0);
                 Engine.setHp(st, -1);
+                Engine.setOwner(st, null);
                 changed = true;
             }
             if (Cannons.isCannonBlock(b)) {

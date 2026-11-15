@@ -199,6 +199,7 @@ public final class ShipListener implements Listener {
         if (placedTier > 0) {
             BlockState st = b.getState();
             Engine.setEngineTag(st, placedTier);
+            Engine.setOwner(st, e.getPlayer().getUniqueId());
             st.update(true, false);
             e.getPlayer().sendActionBar(Engine.display(placedTier)
                     .append(Component.text(" placed! Right-click it to check your boat.", NamedTextColor.GRAY)));
