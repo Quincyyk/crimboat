@@ -25,3 +25,18 @@ Cannons use the AquaticSMP Cannonball item as ammo (and its texture). Without Aq
 ## Build
     mvn package
 The jar ends up in `target/`.
+
+## API for other plugins
+Add `softdepend: [test]` to your plugin.yml and build against this plugin (provided scope). Everything is in `com.aquaticsmp.test.api`.
+
+- `CrimboatApi.get()` (null while crimboat is off):
+  - hull health: `hullHealth(blocks, tier)`, `showHullBar(...)`, `hullHitEffects(at)`, `sinkWreck(...)`
+  - ships: `scanShip(block)` (blocks, engine, tier and owner), `isCaptained(block)`, `engineTier(block or item)`, `engineOwner(engine)`, `isCrimboatEntity(entity)`
+- Engines remember who placed them (kept while the ship sails), so other plugins can tell whose ship it is.
+  - cannons: `placeCannon(block, yaw)`, `removeCannon(block)`, `aimAt(cannon, target)`, `fireCannon(cannon, direction, shooter, ownBlocks)` (no gunner, no ammo: for mob crews and forts), `reloadTicks()`
+- Events:
+  - `ShipCannonHitEvent`: a cannonball hit a block. Cancel it to handle the damage yourself (your own ships or forts); `setDamage` changes the hull damage.
+  - `ShipSailEvent`: a player takes the helm of a ship. Cancel it (with `setDenyMessage`) to keep them off ships that aren't theirs.
+  - `CannonManEvent`: a player mans a cannon. Cancel it to keep them off.
+
+Cannonballs fired with `fireCannon` hurt people like a player's shot, blamed on the shooter you pass in.

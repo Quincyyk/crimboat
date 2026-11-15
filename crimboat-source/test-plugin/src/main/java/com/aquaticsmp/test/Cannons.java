@@ -342,10 +342,26 @@ public final class Cannons {
         Location eye = aimOrigin(g, p);
         Vector dir = aimDir(p);
         Vector muzzle = eye.toVector().add(dir.clone().multiply(1.35));
-        World w = p.getWorld();
-        Location mz = muzzle.toLocation(w);
+        kickModels(g, p);
+        ShipManager.Ship own = plugin.ships().sailingShipWithSeat(g.seat);
+        java.util.Set<Pos> ownBlocks = java.util.Set.of();
+        if (own == null) {
+            // cannon on an anchored ship: never damage your own ship
+            org.bukkit.Location seatBlock = plugin.seats().blockOf(g.seat);
+            if (seatBlock != null) {
+                ShipScanner.Result r = ShipScanner.scan(seatBlock.getBlock(), plugin.ships().maxSize());
+                if (r.hasEngine) ownBlocks = r.blocks;
+            }
+        }
+        launch(p.getWorld(), muzzle, dir, p.getUniqueId(), visualItem, own, ownBlocks);
+        g.cooldown = (int) cfg("reload-ticks", 50);
+        return true;
+    }
 
-        // BOOM: flash, smoke and a kick
+    /** BOOM: flash, smoke and sound at the muzzle, then the ball flies. */
+    private void launch(World w, Vector muzzle, Vector dir, UUID shooter, ItemStack visualItem,
+                        ShipManager.Ship own, java.util.Set<Pos> ownBlocks) {
+        Location mz = muzzle.toLocation(w);
         w.spawnParticle(Particle.EXPLOSION, mz, 1);
         w.spawnParticle(Particle.FLAME, mz, 12, 0.15, 0.15, 0.15, 0.06);
         w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, mz, 14, 0.25, 0.25, 0.25, 0.04);
@@ -353,7 +369,6 @@ public final class Cannons {
         w.playSound(mz, Sound.ENTITY_GENERIC_EXPLODE, 2.5f, 1.25f);
         w.playSound(mz, Sound.ENTITY_FIREWORK_ROCKET_BLAST_FAR, 2f, 0.6f);
         w.playSound(mz, Sound.ITEM_CROSSBOW_SHOOT, 1.5f, 0.6f);
-        kickModels(g, p);
 
         ItemDisplay visual = w.spawn(mz, ItemDisplay.class, e -> {
             e.setItemStack(visualItem);
@@ -363,18 +378,90 @@ public final class Cannons {
             e.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(s, s, s), new Quaternionf()));
             e.setBrightness(new Display.Brightness(15, 15));
         });
-        ShipManager.Ship own = plugin.ships().sailingShipWithSeat(g.seat);
-        Ball ball = new Ball(p.getUniqueId(), visual, own, muzzle, dir.multiply(cfg("ball-speed", 2.4)));
-        if (own == null) {
-            // cannon on an anchored ship: never damage your own ship
-            org.bukkit.Location seatBlock = plugin.seats().blockOf(g.seat);
-            if (seatBlock != null) {
-                ShipScanner.Result r = ShipScanner.scan(seatBlock.getBlock(), plugin.ships().maxSize());
-                if (r.hasEngine) ball.ownBlocks = r.blocks;
+        Ball ball = new Ball(shooter, visual, own, muzzle, dir.clone().multiply(cfg("ball-speed", 2.4)));
+        ball.ownBlocks = ownBlocks;
+        balls.add(ball);
+    }
+
+    // ------------------------------------------------------------------ cannons used by other plugins (see api.CrimboatApi)
+
+    /** Puts a cannon (tagged barrel plus its barrel model) on this block. */
+    public void placeCannon(Block b, float yaw) {
+        removeModels(b);
+        b.setType(BLOCK, false);
+        BlockState st = b.getState();
+        setCannonTag(st, true);
+        st.update(true, false);
+        spawnModels(b, yaw);
+    }
+
+    /** Takes a cannon away again (the block becomes air). */
+    public void removeCannon(Block b) {
+        removeModels(b);
+        if (isCannonBlock(b)) b.setType(Material.AIR, false);
+    }
+
+    private Location barrelOrigin(Block cannon) {
+        return modelSpot(cannon).add(0, 0.15, 0);
+    }
+
+    /**
+     * Direction to fire from this cannon so the ball lands on the target, following the real flight of the ball
+     * (speed, gravity and drag from the config, the same pitch limits a gunner has). Null when out of range.
+     */
+    public Vector aimAt(Block cannon, Location target) {
+        Location from = barrelOrigin(cannon);
+        if (target.getWorld() != from.getWorld()) return null;
+        double dx = target.getX() - from.getX(), dz = target.getZ() - from.getZ();
+        double dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < 2) return null;
+        float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
+        double speed = cfg("ball-speed", 2.4), g = cfg("gravity", 0.045), drag = cfg("drag", 0.995);
+        Vector best = null;
+        double bestErr = Double.MAX_VALUE;
+        for (float pitch = (float) cfg("min-pitch", -40); pitch <= cfg("max-pitch", 20); pitch += 0.5f) {
+            Location l = from.clone();
+            l.setYaw(yaw);
+            l.setPitch(pitch);
+            Vector dir = l.getDirection();
+            Vector pos = from.toVector().add(dir.clone().multiply(1.35));
+            Vector v = dir.clone().multiply(speed);
+            for (int i = 0; i < 200; i++) {
+                Vector next = pos.clone().add(v);
+                if (next.getY() <= target.getY() && v.getY() < 0) {
+                    double hx = next.getX() - target.getX(), hz = next.getZ() - target.getZ();
+                    double err = Math.sqrt(hx * hx + hz * hz);
+                    if (err < bestErr) {
+                        bestErr = err;
+                        best = dir;
+                    }
+                    break;
+                }
+                pos = next;
+                v.setY(v.getY() - g).multiply(drag);
             }
         }
-        balls.add(ball);
-        g.cooldown = (int) cfg("reload-ticks", 50);
+        return bestErr <= Math.max(3, dist * 0.08) ? best : null;
+    }
+
+    /**
+     * Fires this cannon without a gunner and without ammo (e.g. a mob crew). The barrel model turns to the aim
+     * first. The ball never damages the blocks in ownBlocks (the ship or fort it was fired from).
+     */
+    public boolean fireFrom(Block cannon, Vector dir, Entity shooter, java.util.Set<Pos> ownBlocks) {
+        if (!isCannonBlock(cannon) || dir == null) return false;
+        Vector d = dir.clone().normalize();
+        Location model = modelSpot(cannon);
+        model.setDirection(d);
+        List<Entity> models = findModels(cannon);
+        if (models.isEmpty()) {
+            spawnModels(cannon, model.getYaw());
+            models = findModels(cannon);
+        }
+        for (Entity e : models) e.teleport(model);
+        launch(cannon.getWorld(), barrelOrigin(cannon).toVector().add(d.clone().multiply(1.35)), d,
+                shooter == null ? new UUID(0, 0) : shooter.getUniqueId(), createOwnCannonball(1), null,
+                ownBlocks == null ? java.util.Set.of() : ownBlocks);
         return true;
     }
 
@@ -538,7 +625,13 @@ public final class Cannons {
                 return true;
             }
             impact(b, at, true);
-            if (hb != null) plugin.combat().hitBlock(hb, (int) cfg("ship-damage", 1), at);
+            if (hb != null) {
+                // other plugins may handle this block themselves (their own ships or forts)
+                com.aquaticsmp.test.api.ShipCannonHitEvent hit = new com.aquaticsmp.test.api.ShipCannonHitEvent(
+                        hb, at, Bukkit.getEntity(b.shooter), (int) cfg("ship-damage", 1));
+                Bukkit.getPluginManager().callEvent(hit);
+                if (!hit.isCancelled() && hit.getDamage() > 0) plugin.combat().hitBlock(hb, hit.getDamage(), at);
+            }
             return true;
         }
 
@@ -561,7 +654,7 @@ public final class Cannons {
         w.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 3f, 0.9f);
         double radius = cfg("explosion-radius", 3.0);
         double damage = cfg("player-damage", 8.0);
-        Player shooter = Bukkit.getPlayer(b.shooter);
+        Entity shooter = Bukkit.getEntity(b.shooter); // a player, or a mob firing through the API
         for (Entity e : w.getNearbyEntities(at, radius, radius, radius)) {
             if (!(e instanceof LivingEntity le) || plugin.ships().isShipPart(e) || isModel(e)) continue;
             double d = e.getLocation().distance(at);

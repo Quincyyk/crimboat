@@ -177,6 +177,31 @@ public final class Engine {
         else ts.getPersistentDataContainer().set(hpKey(), PersistentDataType.INTEGER, hp);
     }
 
+    // ------------------------------------------------------------------ owner (who placed the engine, stored on the engine block)
+
+    private static NamespacedKey ownerKey() {
+        return new NamespacedKey(plugin, "engine_owner");
+    }
+
+    /** The player who placed this engine, or null (engines placed before owners were saved). */
+    public static java.util.UUID getOwner(Block b) {
+        if (b.getType() != TYPE) return null;
+        if (!(b.getState() instanceof TileState ts)) return null;
+        String v = ts.getPersistentDataContainer().get(ownerKey(), PersistentDataType.STRING);
+        try {
+            return v == null ? null : java.util.UUID.fromString(v);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /** Store the owner (null = remove). Caller must call state.update(). */
+    public static void setOwner(BlockState st, java.util.UUID owner) {
+        if (!(st instanceof TileState ts)) return;
+        if (owner == null) ts.getPersistentDataContainer().remove(ownerKey());
+        else ts.getPersistentDataContainer().set(ownerKey(), PersistentDataType.STRING, owner.toString());
+    }
+
     // ------------------------------------------------------------------ speeds (blocks per tick)
 
     /** Biggest ship this engine can move. Tier 1 = 500 blocks ... Tier 5 = 2000 blocks. */

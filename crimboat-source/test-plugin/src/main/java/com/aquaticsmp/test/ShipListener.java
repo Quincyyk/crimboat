@@ -53,7 +53,11 @@ public final class ShipListener implements Listener {
         // Right-click a cannon = man it.
         if (Cannons.isCannonBlock(b)) {
             e.setCancelled(true);
-            if (!p.isSneaking() && !p.isInsideVehicle()) plugin.cannons().man(p, b);
+            if (!p.isSneaking() && !p.isInsideVehicle()) {
+                com.aquaticsmp.test.api.CannonManEvent man = new com.aquaticsmp.test.api.CannonManEvent(p, b);
+                Bukkit.getPluginManager().callEvent(man);
+                if (!man.isCancelled()) plugin.cannons().man(p, b);
+            }
             return;
         }
 
@@ -195,6 +199,7 @@ public final class ShipListener implements Listener {
         if (placedTier > 0) {
             BlockState st = b.getState();
             Engine.setEngineTag(st, placedTier);
+            Engine.setOwner(st, e.getPlayer().getUniqueId());
             st.update(true, false);
             e.getPlayer().sendActionBar(Engine.display(placedTier)
                     .append(Component.text(" placed! Right-click it to check your boat.", NamedTextColor.GRAY)));

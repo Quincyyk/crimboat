@@ -35,11 +35,13 @@ public final class TestPlugin extends JavaPlugin {
         ships.cleanupLeftovers();
         ships.start();
         cannons.start();
+        com.aquaticsmp.test.api.CrimboatApi.enable(this);
         getLogger().info("test enabled - ships ready to sail.");
     }
 
     @Override
     public void onDisable() {
+        com.aquaticsmp.test.api.CrimboatApi.disable();
         if (cannons != null) {
             cannons.stop();
             cannons.unregisterRecipes();
